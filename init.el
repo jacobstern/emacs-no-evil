@@ -1,7 +1,9 @@
 (require 'package)
 (setq package-enable-at-startup nil)
 (add-to-list 'package-archives
-             '("melpa" . "https://melpa.org/packages/"))
+  '("melpa" . "https://melpa.org/packages/"))
+;; (add-to-list 'package-archives
+;;   '("melpa-stable" . "https://stable.melpa.org/packages/"))
 
 (package-initialize)
 
@@ -41,7 +43,6 @@
 
 (global-auto-revert-mode 1)
 (show-paren-mode 1)
-(electric-pair-mode 1)
 (electric-indent-mode 1)
 (delete-selection-mode 1)
 (winner-mode 1)
@@ -64,39 +65,54 @@
 
 (windmove-default-keybindings)
 
-(define-key global-map (kbd "C-s") #'isearch-forward-regexp)
-(define-key global-map (kbd "C-r") #'isearch-backward-regexp)
+(setq help-window-select t)
 
 (defun my-inhibit-electric-pair-mode (_char)
   (minibufferp))
+
+(defun my-reload-init-file ()
+  (interactive)
+  (load-file user-init-file))
+
+(define-key global-map (kbd "C-c y") #'my-reload-init-file)
 
 (defun my-find-user-init-file ()
   "Edit the `user-init-file', in another window."
   (interactive)
   (find-file-other-window user-init-file))
 
-(define-key global-map (kbd "C-c i") #'my-find-user-init-file)
+(define-key global-map (kbd "C-c u") #'my-find-user-init-file)
 
+(defun my-mark-line ()
+  "Mark the current line or extend the region to next EOL"
+  (interactive)
+  (unless (region-active-p)
+    (push-mark (line-beginning-position) nil t))
+  (if (= (point) (line-end-position))
+    (end-of-line 2)
+    (end-of-line)))
+
+(define-key global-map (kbd "C-;") #'my-mark-line)
 
 ;; Put autosave files in their own directory
 (setq backup-directory-alist
-      `(("." . ,(concat user-emacs-directory "backups"))))
+  `(("." . ,(concat user-emacs-directory "backups"))))
+
+(define-key global-map (kbd "C-c d") #'dired)
 
 (use-package shackle
   :ensure t
-  :config
-  (shackle-mode 1))
+  :config (shackle-mode 1))
 
-;; (defun my-projectile-switch-project-action ()
-;;   (interactive)
-;;   (projectile-dired)
-;;   (unless (eq (treemacs-current-visibility) 'visible)
-;;     (treemacs))
-;;   (treemacs-add-and-display-current-project))
+(defun my-projectile-after-switch-handler ()
+  (interactive)
+  (save-selected-window
+    (treemacs-add-and-display-current-project)))
 
 (use-package projectile
   :ensure t
   :demand t
+  :delight
   :bind (("C-x p" . projectile-command-map)
           ("C-c f" . projectile-find-file))
   :init
@@ -105,7 +121,8 @@
     (setq projectile-indexing-method 'alien))
   :config
   (projectile-mode 1)
-  (setq projectile-switch-project-action #'treemacs-add-and-display-current-project))
+  (add-hook 'projectile-after-switch-project-hook #'my-projectile-after-switch-handler)
+  (setq projectile-switch-project-action #'helm-projectile))
 
 (use-package helm-projectile
   :ensure t
@@ -124,6 +141,7 @@
   :delight helm-mode
   :after (shackle)
   :bind (("M-x" . helm-M-x)
+	  ("C-c i" . helm-imenu)
 	  ("C-c r" . helm-recentf)
 	  ("C-x C-f" . helm-find-files)
 	  ("C-x b" . helm-mini)
@@ -158,7 +176,7 @@
   :ensure t
   :delight undo-tree-mode
   :config
-  (undo-tree-mode 1))
+  (global-undo-tree-mode 1))
 
 (use-package flycheck
   :ensure t
@@ -183,7 +201,28 @@
   (add-hook 'racer-mode-hook #'eldoc-mode)
   (add-hook 'racer-mode-hook #'company-mode))
 
+(use-package aggressive-indent
+  :ensure t
+  :hook (scheme-mode . aggressive-indent-mode))
+
+(use-package fill-column-indicator
+  :ensure t
+  :init
+  (setq fci-rule-column 80)
+  ;; (setq fci-rule-width 2)
+  :config
+  (add-hook 'prog-mode-hook #'turn-on-fci-mode))
+
+(use-package nyan-mode
+  :ensure t
+  :config
+  (nyan-mode 1))
+
 ;;; Scheme stuff
+
+(use-package rainbow-delimiters
+  :ensure t
+  :hook (scheme-mode . rainbow-delimiters-mode))
 
 (setq scheme-program-name "csi -:c")
 (setq lisp-indent-offset 2)
@@ -194,6 +233,10 @@
 
 (add-hook 'scheme-mode-hook #'my-init-scheme-mode)
 
+(use-package zenburn-theme
+  :ensure t
+  :config
+  (load-theme 'zenburn t))
 
 (use-package magit
   :ensure t
@@ -222,7 +265,7 @@
           treemacs-goto-tag-strategy             'refetch-index
           treemacs-indentation                   2
           treemacs-indentation-string            " "
-          treemacs-is-never-other-window         nil
+          treemacs-is-never-other-window         t ; Default nil
           treemacs-max-git-entries               5000
           treemacs-missing-project-action        'ask
           treemacs-no-png-images                 nil
@@ -256,7 +299,7 @@
       (`(t . t)
        (treemacs-git-mode 'deferred))
       (`(t . _)
-       (treemacs-git-mode 'simple))))
+        (treemacs-git-mode 'simple))))
   :bind
   (:map global-map
         ("M-0"       . treemacs-select-window)
@@ -271,7 +314,7 @@
   :ensure t)
 
 (use-package treemacs-icons-dired
-  :after treemacs dired
+  :after (treemacs dired)
   :ensure t
   :config (treemacs-icons-dired-mode))
 
@@ -313,16 +356,44 @@
                 (add-hook 'comint-input-filter-functions
                   #'sj-shell-clear-listener nil t))))
 
+(use-package smartparens
+  :ensure t
+  :hook (prog-mode . smartparens-strict-mode)
+  :hook (smartparens-mode . sp-use-smartparens-bindings)
+  :bind (:map smartparens-mode-map
+	  ("M-(" . sp-wrap-round)))
+
+(use-package smartparens-config
+  :ensure smartparens)
+
+;; JavaScript and friends
+
+(defun my-init-js-mode ()
+  (interactive)
+  (setq indent-tabs-mode nil)
+  (setq js-indent-level 2))
+
+(add-hook 'js-mode-hook #'my-init-js-mode)
+
+(use-package avy
+  :ensure t
+  :bind (("M-g w" . avy-goto-word-1)))
+
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(custom-enabled-themes (quote (leuven)))
+  '(ansi-color-faces-vector
+     [default default default italic underline success warning error])
+ '(custom-enabled-themes (quote (zenburn)))
+  '(custom-safe-themes
+     (quote
+       ("c82d24bfba431e8104219bfd8e90d47f1ad6b80a504a7900cbee002a8f04392f" default)))
  '(helm-mode t)
   '(package-selected-packages
      (quote
-       (racer racer-mode rust-mode treemacs-magit magit treemacs-icons-dired treemacs-projectile treemacs helm-projectile projectile flycheck undo-tree intero scheme-complete restart-emacs helm shackle delight use-package))))
+       (aggressive-indent minions nyan-mode fill-column-indicator zenburn-theme rainbow-delimiters racer racer-mode rust-mode treemacs-magit magit treemacs-icons-dired treemacs-projectile treemacs helm-projectile projectile flycheck undo-tree intero scheme-complete restart-emacs helm shackle delight use-package))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

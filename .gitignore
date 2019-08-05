@@ -16,3 +16,4 @@ smex-items
 forge-database.sqlite
 url/
 transient/
+server/
