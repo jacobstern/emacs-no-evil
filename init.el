@@ -83,14 +83,16 @@
 
 (define-key global-map (kbd "C-c u") #'my-find-user-init-file)
 
-(defun my-mark-line ()
+(defun my-mark-line (&optional n)
   "Mark the current line or extend the region to next EOL"
-  (interactive)
-  (unless (region-active-p)
-    (push-mark (line-beginning-position) nil t))
-  (if (= (point) (line-end-position))
-    (end-of-line 2)
-    (end-of-line)))
+  (interactive "P")
+  (let ((lines (or n 1)))
+    (if (region-active-p)
+      (if (= (point) (line-end-position))
+        (end-of-line (+ lines 1))
+        (end-of-line lines))
+      (progn (push-mark (line-beginning-position) nil t)
+        (end-of-line lines)))))
 
 (define-key global-map (kbd "C-;") #'my-mark-line)
 
