@@ -86,6 +86,8 @@
 (defun my-mark-line (&optional n)
   "Mark the current line or extend the region to next EOL"
   (interactive "P")
+  (when (not (my-mark-line-mode))
+    (my-mark-line-mode 1))
   (let ((lines (or n 1)))
     (if (region-active-p)
       (if (= (point) (line-end-position))
@@ -94,7 +96,25 @@
       (progn (push-mark (line-beginning-position) nil t)
         (end-of-line lines)))))
 
-(define-key global-map (kbd "C-;") #'my-mark-line)
+(defun my-cancel-mark-line-mode ()
+  (interactive)
+  (remove-hook 'deactivate-mark-hook #'my-cancel-mark-line-mode t)
+  (my-mark-line-mode 0))
+
+(defun my-extend-line-region ()
+  "Extend a region created with `my-mark-line'"
+  (interactive)
+  (my-mark-line))
+
+(define-minor-mode my-mark-line-mode
+  "This mode introduces a key binding to extend the current
+  selection to the next EOL with the L key."
+  nil
+  " Mark-Line"
+  '(((kbd "l") . my-extend-line-region))
+  (add-hook 'deactivate-mark-hook #'my-cancel-mark-line-mode nil t))
+
+(define-key global-map (kbd "C-c l") #'my-mark-line)
 
 ;; Put autosave files in their own directory
 (setq backup-directory-alist
@@ -381,6 +401,13 @@
   :ensure t
   :bind (("M-g w" . avy-goto-word-1)))
 
+(use-package anzu
+  :ensure t
+  :config
+  (global-anzu-mode +1)
+  (global-set-key [remap query-replace] #'anzu-query-replace)
+  (global-set-key [remap query-replace-regexp] #'anzu-query-replace-regexp))
+
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -392,10 +419,11 @@
   '(custom-safe-themes
      (quote
        ("c82d24bfba431e8104219bfd8e90d47f1ad6b80a504a7900cbee002a8f04392f" default)))
+ '(global-anzu-mode t)
  '(helm-mode t)
   '(package-selected-packages
      (quote
-       (aggressive-indent minions nyan-mode fill-column-indicator zenburn-theme rainbow-delimiters racer racer-mode rust-mode treemacs-magit magit treemacs-icons-dired treemacs-projectile treemacs helm-projectile projectile flycheck undo-tree intero scheme-complete restart-emacs helm shackle delight use-package))))
+       (anzu aggressive-indent nyan-mode fill-column-indicator zenburn-theme rainbow-delimiters racer racer-mode rust-mode treemacs-magit magit treemacs-icons-dired treemacs-projectile treemacs helm-projectile projectile flycheck undo-tree intero scheme-complete restart-emacs helm shackle delight use-package))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
