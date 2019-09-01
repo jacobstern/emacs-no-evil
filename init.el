@@ -63,6 +63,10 @@
 (define-key global-map (kbd "C-c o") #'mode-line-other-buffer)
 (define-key global-map (kbd "C-c u") #'browse-url-at-point)
 
+;; Unbind completion commands which are superceded by Company
+(define-key global-map (kbd "M-/") nil)
+(define-key global-map (kbd "C-M-/") nil)
+
 (windmove-default-keybindings)
 
 (setq help-window-select t)
@@ -122,6 +126,10 @@
 
 (define-key global-map (kbd "C-c d") #'dired)
 
+(use-package uniquify
+  :init
+  (setq uniquify-buffer-name-style 'forward))
+
 (use-package shackle
   :ensure t
   :config (shackle-mode 1))
@@ -163,6 +171,7 @@
   :delight helm-mode
   :after (shackle)
   :bind (("M-x" . helm-M-x)
+	  ("C-h a" . helm-apropos)
 	  ("C-c i" . helm-imenu)
 	  ("C-c r" . helm-recentf)
 	  ("C-x C-f" . helm-find-files)
@@ -203,7 +212,9 @@
 (use-package flycheck
   :ensure t
   :config
-  (add-hook 'after-init-hook #'global-flycheck-mode))
+  (add-hook 'after-init-hook #'global-flycheck-mode)
+  (setq flycheck-clang-warnings `(,@flycheck-clang-warnings
+                                    "no-pragma-once-outside-header")))
 
 (use-package company
   :ensure t
@@ -271,9 +282,6 @@
 (use-package treemacs
   :ensure t
   :defer t
-  :init
-  (with-eval-after-load 'winum
-    (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
   :config
   (progn
     (setq treemacs-collapse-dirs                 (if (treemacs--find-python3) 3 0)
@@ -324,7 +332,7 @@
         (treemacs-git-mode 'simple))))
   :bind
   (:map global-map
-        ("M-0"       . treemacs-select-window)
+        ("C-c t"     . treemacs-select-window)
         ("C-x t 1"   . treemacs-delete-other-windows)
         ("C-x t t"   . treemacs)
         ("C-x t B"   . treemacs-bookmark)
@@ -399,14 +407,50 @@
 
 (use-package avy
   :ensure t
-  :bind (("M-g w" . avy-goto-word-1)))
+  :delight
+  :demand t                             ; For `avy-setup-default'
+  :bind (("M-g w" . avy-goto-word-1)
+          ("C-:" . avy-goto-char)
+          ("C-'" . avy-goto-char-2)
+          ("M-g f" . avy-goto-line)
+          ("M-g e" . avy-goto-word-0))
+  :config
+  (avy-setup-default)
+  (global-set-key (kbd "C-c C-j") 'avy-resume))
 
 (use-package anzu
   :ensure t
+  :delight
   :config
   (global-anzu-mode +1)
   (global-set-key [remap query-replace] #'anzu-query-replace)
   (global-set-key [remap query-replace-regexp] #'anzu-query-replace-regexp))
+
+;; (use-package cmake-ide
+;;   :ensure t
+;;   :config
+;;   (cmake-ide-setup))
+
+;; (use-package lsp-mode
+;;   :hook (c++-mode . lsp)
+;;   :hook (c-mode .lsp)
+;;   :commands lsp)
+
+;; (use-package lsp-ui
+;;   :ensure t
+;;   :hook (lsp-mode . lsp-ui))
+
+;; (use-package company-lsp
+;;   :ensure t
+;;   :commands company-lsp
+;;   :config
+;;   (push 'company-lsp company-backends))
+
+;; (use-package cquery
+;;   :ensure t)
+
+;; (use-package helm-lsp :ensure t :commands helm-lsp-workspace-symbol)
+;; (use-package lsp-treemacs :ensure t :commands lsp-treemacs-errors-list)
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -423,7 +467,7 @@
  '(helm-mode t)
   '(package-selected-packages
      (quote
-       (anzu aggressive-indent nyan-mode fill-column-indicator zenburn-theme rainbow-delimiters racer racer-mode rust-mode treemacs-magit magit treemacs-icons-dired treemacs-projectile treemacs helm-projectile projectile flycheck undo-tree intero scheme-complete restart-emacs helm shackle delight use-package))))
+       (cquery cmake-ide sr-speedbar anzu aggressive-indent nyan-mode fill-column-indicator zenburn-theme rainbow-delimiters racer racer-mode rust-mode treemacs-magit magit treemacs-icons-dired treemacs-projectile treemacs helm-projectile projectile flycheck undo-tree intero scheme-complete restart-emacs helm shackle delight use-package))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
